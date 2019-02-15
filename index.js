@@ -1,6 +1,7 @@
 'use strict';
 
 const pkg = require("./package.json")
+const OrientDBClient = require('orientjs').OrientDBClient
 
 exports.plugin = {
     pkg,

@@ -16,5 +16,8 @@
     "orientdb"
   ],
   "author": "Peter Vavro <peter@vavro.me>",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "orientjs": "^3.0.4"
+  }
 }
