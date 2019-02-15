@@ -10,7 +10,7 @@ exports.plugin = {
         const config = {
             host: options.host,
             port: options.port,
-            db: options.dbname,
+            db: options.db,
             user: options.username,
             password: options.password
         }
