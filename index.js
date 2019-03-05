@@ -69,8 +69,12 @@ exports.plugin = {
                         // Log
                         server.log([pkg.name, 'disconnect'], `Session closed. ${pool.pending()} sessions open.`);
 
-                        // Release the session
-                        await request.app.OrientDB.close();
+                        if (typeof request.app.OrientDB !== 'undefined' && request.app.OrientDB !== undefined) {
+
+                            // Release the session
+                            await request.app.OrientDB.close();
+
+                        }
 
                         console.error('request aborted');
 
@@ -86,8 +90,12 @@ exports.plugin = {
                 type: 'onPreResponse',
                 method: async function (request, h) {
 
-                    // Release the session
-                    await request.app.OrientDB.close();
+                    if (typeof request.app.OrientDB !== 'undefined' && request.app.OrientDB !== undefined) {
+
+                        // Release the session
+                        await request.app.OrientDB.close();
+
+                    }
 
                     // Close the pool
                     // TODO :: await pool.close(); // https://github.com/orientechnologies/orientjs/issues/360
