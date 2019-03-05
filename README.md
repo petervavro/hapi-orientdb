@@ -13,6 +13,7 @@ await server.register({
     db: 'db_name',
     username: 'username',
     password: 'password',
+    // optional : initOnRequestLifecycleStep: 'onRequest' // = Default value.
 }
 });
 ```
