@@ -8,13 +8,13 @@ Inspired by code at [OrientJS Chat Example](https://github.com/orientechnologies
 await server.register({
     plugin: require('hapi-orientdb'),
     options: {
-    host: 'ip',
-    port: 'port',
-    db: 'db_name',
-    username: 'username',
-    password: 'password',
-    // optional : initOnRequestLifecycleStep: 'onRequest' // = Default value.
-}
+        host: 'ip',
+        port: 'port',
+        db: 'db_name',
+        username: 'username',
+        password: 'password',
+        // optional : initOnRequestLifecycleStep: 'onRequest' // = Default value.
+    }
 });
 ```
 

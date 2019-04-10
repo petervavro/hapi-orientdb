@@ -53,6 +53,12 @@ exports.plugin = {
 
         const boostrap = ({ client, pool }) => {
 
+            // Attach to server
+            server.decorate('server', 'OrientDB', {
+                client, pool
+            });
+
+            // Init in lifecycle
             server.ext({
                 type: initOnRequestLifecycleStep,
                 method: async function (request, h) {
@@ -86,6 +92,7 @@ exports.plugin = {
 
             });
 
+            // After
             server.ext({
                 type: 'onPreResponse',
                 method: async function (request, h) {
@@ -121,11 +128,11 @@ exports.plugin = {
 
             let { client, pool } = await setupDatabase();
 
-            boostrap({ client, pool });
+            await boostrap({ client, pool });
 
         };
 
         // Run
-        run();
+        await run();
     }
 };
