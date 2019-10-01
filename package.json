@@ -1,6 +1,6 @@
 {
   "name": "hapi-orientdb",
-  "version": "1.0.7a",
+  "version": "1.0.7b",
   "description": "OrientDB plugin for hapijs",
   "main": "index.js",
   "scripts": {
