@@ -13,7 +13,19 @@ await server.register({
         db: 'db_name',
         username: 'username',
         password: 'password',
-        // optional : initOnRequestLifecycleStep: 'onRequest' // = Default value.
+        // Optional :
+        initOnRequestLifecycleStep: 'onRequest', // = Default value.
+        forceCreateDB: true, // = Default value.
+        sessionsOptions: { // = Default value.
+            pool: {
+                max: 25
+            }
+        },
+        connectOptions: { // = Default value.
+            pool: {
+                max: 10
+            }
+        }
     }
 });
 ```
