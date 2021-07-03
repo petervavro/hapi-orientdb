@@ -1,5 +1,5 @@
 # hapi-orientdb
-[hapi](https://hapijs.com/) plugin for [OrientDB](https://orientdb.com/).
+[hapi](https://hapijs.com/) plugin to use [OrientDB](https://orientdb.com/).
 
 Inspired by code at [OrientJS Chat Example](https://github.com/orientechnologies/orientjs-example/tree/master/orientjs-chat-example-async-await).
 
@@ -8,24 +8,19 @@ Inspired by code at [OrientJS Chat Example](https://github.com/orientechnologies
 await server.register({
     plugin: require('hapi-orientdb'),
     options: {
-        host: 'ip',
-        port: 'port',
+        host: '0.0.0.0',
+        username: 'YOUR_USERNAME_TO_ORIENTDB_SERVER',
+        password: 'YOUR_PASSWORD_TO_ORIENTDB_SERVER',
         db: 'db_name',
-        username: 'username',
-        password: 'password',
-        // Optional :
+        // Optional:
+        dbUsername: 'YOUR_USERNAME_TO_ORIENTDB_DB',
+        dbPassword: 'YOUR_USERNAME_TO_ORIENTDB_DB',
+        port: 2424,
+        httpPort: 2480,
         initOnRequestLifecycleStep: 'onRequest', // = Default value.
         forceCreateDB: true, // = Default value.
-        sessionsOptions: { // = Default value.
-            pool: {
-                max: 25
-            }
-        },
-        connectOptions: { // = Default value.
-            pool: {
-                max: 10
-            }
-        }
+        sessionsOptions: {},
+        connectOptions: {}
     }
 });
 ```

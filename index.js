@@ -1,150 +1,74 @@
 'use strict';
 
 const pkg = require("./package.json");
-const OrientDBClient = require('orientjs').OrientDBClient;
+const OrientDB = require('orientjs');
 
 exports.plugin = {
     pkg,
-    register: async function (server, options) {
+    register: async (server, options) => {
 
         // Default values
-        let initOnRequestLifecycleStep = 'onRequest'
+        const {
+            host,
+            port = 2424,
+            httpPort = 2480,
+            username,
+            password,
+            db,
+            initOnRequestLifecycleStep = 'onRequest',
+            forceCreateDB = true,
+            sessionsOptions = {},
+            connectOptions = {}
+        } = options
 
-        if (typeof options.initOnRequestLifecycleStep !== 'undefined' &&
-            options.initOnRequestLifecycleStep !== undefined &&
-            options.initOnRequestLifecycleStep !== '') {
+        const client = new OrientDB.OrientDBClient({
+            host,
+            port,
+            httpPort,
+            username,
+            password,
+            ...connectOptions
+        });
 
-            initOnRequestLifecycleStep = options.initOnRequestLifecycleStep
+        await client.connect()
 
+        const dbConfig = {
+            name: db, 
+            username: (
+                typeof options.dbUsername !== 'undefined' && options.dbUsername !== undefined ? options.dbUsername : username
+            ),
+            password: (
+                typeof options.dbPassword !== 'undefined' && options.dbPassword !== undefined ? options.dbPassword : password
+            ),
         }
 
-        const forceCreateDB = (typeof options.forceCreateDB !== 'undefined' && options.forceCreateDB !== undefined ? options.forceCreateDB : true)
+        const { pool } = await client.sessions({
+            ...dbConfig,
+            ...sessionsOptions
+        })
 
-        /**
-         * Init connection
-         */
-        const setupDatabase = async () => {
+        // Attach to server
+        server.decorate('server', 'OrientDB', {
+            client, 
+            pool
+        })
 
-            let connectOptions = {
-                pool: {
-                    max: 10
-                }
-            }
+        // Init in lifecycle
+        server.ext({
+            type: initOnRequestLifecycleStep,
+            method: async (request, h) => {
 
-            // Add options form outside
-            if (typeof options.connectOptions !== 'undefined' && options.connectOptions !== undefined) {
+                // Get session from pool and pass to request
+                request.app.OrientDB = await pool.acquire()
 
-                connectOptions = {
-                    ...connectOptions,
-                    ...options.connectOptions
-                }
+                // Log
+                server.log([pkg.name, initOnRequestLifecycleStep], `Session acquired. ${pool.available} of ${pool.size} sessions still available.`)
 
-            }
+                // On finish
+                request.events.once('disconnect', async () => {
 
-            let client = await OrientDBClient.connect({
-                host: options.host,
-                port: options.port,
-                ...connectOptions
-            })
-
-            const dbCredentials = {
-                name: options.db,
-                username: options.username,
-                password: options.password
-            }
-
-            // Check if DB exists
-            let doesDBExists = await client.existsDatabase(dbCredentials)
-
-            if (forceCreateDB === true && doesDBExists === false) {
-
-                // >>> Create DB
-
-                const databaseOptions = { ...dbCredentials }
-
-                // Storage
-                if (typeof options.storage !== 'undefined' && options.storage !== undefined) databaseOptions.storage = options.storage
-
-                // Type
-                if (typeof options.type !== 'undefined' && options.type !== undefined) databaseOptions.type = options.type
-
-                await client.createDatabase(databaseOptions)
-
-                // <<< Create DB
-
-            }
-
-            let sessionsOptions = {
-                pool: {
-                    max: 25
-                }
-            }
-
-            // Add options form outside
-            if (typeof options.sessionsOptions !== 'undefined' && options.sessionsOptions !== undefined) {
-
-                sessionsOptions = {
-                    ...sessionsOptions,
-                    ...options.sessionsOptions
-                }
-
-            }
-
-            let pool = await client.sessions({
-                ...dbCredentials,
-                ...sessionsOptions
-            })
-
-            return { client, pool }
-
-        }
-
-        const boostrap = ({ client, pool }) => {
-
-            // Attach to server
-            server.decorate('server', 'OrientDB', {
-                client, pool
-            })
-
-            // Init in lifecycle
-            server.ext({
-                type: initOnRequestLifecycleStep,
-                method: async function (request, h) {
-
-                    // Get session from pool and pass to request
-                    request.app.OrientDB = await pool.acquire()
-
-                    // Logging
-                    server.log([pkg.name, initOnRequestLifecycleStep], `Session acquired.`)
-
-                    // On finish
-                    request.events.once('disconnect', async function () {
-
-                        // Log
-                        server.log([pkg.name, 'disconnect'], `Session closed. ${pool.pending()} sessions open.`)
-
-                        if (typeof request.app.OrientDB !== 'undefined' && request.app.OrientDB !== undefined) {
-
-                            // Release the session
-                            await request.app.OrientDB.close()
-
-                        }
-
-                        // eslint-disable-next-line no-console
-                        console.error('request aborted')
-
-                    })
-
-                    return h.continue
-
-                }
-
-            })
-
-            // After
-            server.ext({
-                type: 'onPreResponse',
-                method: async function (request, h) {
+                    // Log
+                    server.log([pkg.name, 'disconnect'], `Session closed. ${pool.borrowed} sessions still open.`)
 
                     if (typeof request.app.OrientDB !== 'undefined' && request.app.OrientDB !== undefined) {
 
@@ -153,37 +77,52 @@ exports.plugin = {
 
                     }
 
-                    // Close the pool
-                    // await pool.close(); // https://github.com/orientechnologies/orientjs/issues/360
+                    // eslint-disable-next-line no-console
+                    console.error('Request aborted')
 
-                    // Log
-                    server.log([pkg.name, 'onPreResponse'], `Session closed. ${pool.pending()} sessions open.`)
+                })
 
-                    return h.continue
+                return h.continue
+
+            }
+
+        })
+
+        // After
+        server.ext({
+            type: 'onPreResponse',
+            method: async (request, h) => {
+
+                if (typeof request.app.OrientDB !== 'undefined' && request.app.OrientDB !== undefined) {
+
+                    // Release the session
+                    await request.app.OrientDB.close()
 
                 }
-            })
 
-            process.on('SIGINT', async function (a, b) {
+                // Close the pool
+                // TODO: await pool.close(); // https://github.com/orientechnologies/orientjs/issues/360
 
-                // Close client
-                await client.close()
+                // Log
+                server.log([pkg.name, 'onPreResponse'], `Session closed. ${pool.borrowed} sessions still open.`)
 
-            })
+                return h.continue
 
-        }
+            }
+        })
 
-        // Init process method
-        const run = async () => {
+        server.events.on('stop', async () => {
 
-            let { client, pool } = await setupDatabase()
+            // Close client
+            await client.close()
 
-            await boostrap({ client, pool })
+            // Log
+            server.log([pkg.name], `OrientDB client closed.`)
 
-        }
-
-        // Run
-        await run()
+            // eslint-disable-next-line no-console
+            console.log('OrientDB client closed.')
+    
+        });
 
     }
 
