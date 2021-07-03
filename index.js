@@ -111,12 +111,18 @@ exports.plugin = {
             }
         })
 
-        process.on('SIGINT', async () => {
+        server.events.on('stop', async () => {
 
             // Close client
             await client.close()
 
-        })
+            // Log
+            server.log([pkg.name], `OrientDB client closed.`)
+
+            // eslint-disable-next-line no-console
+            console.log('OrientDB client closed.')
+    
+        });
 
     }
 

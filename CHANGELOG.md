@@ -8,4 +8,4 @@
 * default values removed from `sessionsOptions` config option
 * default values removed from `connectOptions` config option
 * option to set `http Port` added to config
-        
+* hapijs stop the server's listener implemented to close OrientDB client instead of using Node signal events listener
